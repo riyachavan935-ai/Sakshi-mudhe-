@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Train Booking - GNU - 18008</title>
+<style>
+body{font-family:Arial,sans-serif;background:#f5f5f5;margin:0}
+.top{background:#213d77;color:#fff;padding:15px;text-align:center}
+.top span{color:#ff9a00}
+.box{max-width:800px;margin:20px auto;background:#fff;padding:20px;border-radius:10px;box-shadow:0 2px 10px #0002}
+h3{color:#213d77;border-bottom:2px solid #ff9a00;padding-bottom:5px}
+.train{border:1px solid #ddd;padding:12px;border-radius:8px;margin:10px 0;display:flex;justify-content:space-between;align-items:center}
+.train b{color:#213d77}
+.seat{padding:6px 12px;border:1px solid #ccc;border-radius:6px;cursor:pointer;margin:0 5px;font-size:13px}
+.seat:hover{background:#213d77;color:#fff}
+.seat.sel{background:#ff9a00;color:#fff;border-color:#ff9a00}
+.seat.book{background:#fcc;color:#900;cursor:not-allowed}
+.summary{background:#eef2ff;padding:15px;border-radius:8px;margin-top:15px;border:1px dashed #213d77}
+.console{background:#000;color:#0f0;padding:10px;border-radius:6px;font-family:monospace;font-size:11px;height:80px;overflow:auto;margin-top:10px}
+.btn{width:100%;background:#ff9a00;color:#fff;border:none;padding:12px;border-radius:8px;font-weight:bold;cursor:pointer;margin-top:10px}
+.btn:hover{background:#e68a00}
+small{font-family:monospace;color:#666}
+</style>
+</head>
+<body>
+<div class="top"><h2>IRCTC <span>TRAIN BOOKING</span> - 18008 Riya Chavan</h2><small style="color:#0f0">GNU Sim8085 + iverilog Concept</small></div>
+
+<div class="box">
+<h3>Available Trains <small>Memory: 2000H-2002H</small></h3>
+
+<div class="train">
+<div><b>12127 Intercity</b><br><small>06:15 CSTM → 09:30 PUNE • 2000H</small></div>
+<div>
+<span class="seat" onclick="sel(0,0,120,this)">GEN ₹120 <small>00H</small></span>
+<span class="seat" onclick="sel(0,1,250,this)">SL ₹250 <small>01H</small></span>
+<span class="seat book">3A FULL <small>FFH</small></span>
+</div>
+</div>
+
+<div class="train">
+<div><b>11007 Deccan</b><br><small>07:00 CSTM → 10:50 PUNE • 2001H</small></div>
+<div>
+<span class="seat" onclick="sel(1,0,120,this)">GEN ₹120</span>
+<span class="seat" onclick="sel(1,1,180,this)">2S ₹180</span>
+<span class="seat" onclick="sel(1,2,250,this)">SL ₹250</span>
+</div>
+</div>
+
+<div class="train">
+<div><b>12123 Deccan Queen</b><br><small>17:10 CSTM → 20:20 PUNE • 2002H</small></div>
+<div>
+<span class="seat" onclick="sel(2,0,450,this)">CC ₹450</span>
+<span class="seat book">1A FULL</span>
+</div>
+</div>
+
+<div class="summary">
+<b>Booking Summary</b> <small>2050H=Train 2051H=Class 2200H=Bill 2300H=Pass 2301H=Z</small><br><br>
+Train: <b id="t">None</b> | Class: <b id="c">None</b> | Z Flag: <b id="z">0</b><br><br>
+Passengers (2300H): <button onclick="pc(-1)">-</button> <b id="pc">1</b> <button onclick="pc(1)">+</button> (INR C)<br><br>
+Base Fare (2200H): ₹<b id="base">0</b> (ADI) | Total: ₹<b id="tot">0</b><br>
+<button class="btn" onclick="book()">BOOK NOW - HLT / $finish</button>
+<div class="console" id="con">> iverilog train.v -o sim<br>> vvp sim<br>> LXI H,2000H Train Memory [00 01 00] Ready<br>> Waiting for CALL (Book)...<br></div>
+</div>
+</div>
+
+<script>
+let T=null,C=null,F=0,P=1;
+function sel(t,c,fare,el){
+ document.querySelectorAll('.seat').forEach(s=>s.classList.remove('sel'));
+ if(el.classList.contains('book')){log(`CALL T${t} FAIL • Already BOOKED • Z=0`);return;}
+ el.classList.add('sel'); T=t;C=c;F=fare;
+ document.getElementById('t').innerText='Train'+t+' (200'+t+'H)'; 
+ document.getElementById('c').innerText='Class'+c+' (2051H)';
+ document.getElementById('base').innerText=fare;
+ document.getElementById('z').innerText='1';
+ log(`CALL T${t} C${c} SUCCESS • LXI H,200${t}H • MVI M,01H • STA 2050H=${t} • STA 2051H=${c} • Z=1`);
+ upd();
+}
+function pc(d){P+=d;if(P<1)P=1;if(P>6)P=6;document.getElementById('pc').innerText=P;upd();}
+function upd(){let tot=F*P;document.getElementById('tot').innerText=tot; if(F>0) log(`PUSH Passenger • INR C • 2300H=${P} • ADI ${F.toString(16)}H • 2200H=${tot}`);}
+function log(m){let c=document.getElementById('con');c.innerHTML+=`> ${m}<br>`;c.scrollTop=9999;}
+function book(){if(T==null){alert('Select seat first! CALL operation');return;}log(`HLT • $finish • Booked T${T} C${C} • Bill=${F*P} • PNR Done`);alert(`Booked!\nTrain: ${T} (200${T}H=01H)\nClass: ${C}\nPass: ${P} (2300H)\nBill: ₹${F*P} (2200H)\nZ=1 (2301H)\n\nGNU Map:\n2000H=Train Mem\n2050H=${T}\n2200H=${F*P}\n2300H=${P}`);}
+</script>
+</body>
+  </html>
